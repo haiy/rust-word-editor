@@ -50,3 +50,5 @@ target/release/rust-word --test-server 127.0.0.1:18772 test-output/sandbox
 Keep this process in the current terminal/session. The test server has no authentication and must remain on loopback. Some older UI scripts require an authorized codex-chrome test bridge configured on your machine; they contain no credentials. The bilingual release smoke test uses Playwright CLI. `node --test tests/localization.test.mjs` checks locale compilation, escaping and document-text preservation.
 
 To regenerate the original PPTX assets, install `python-pptx` in a disposable virtual environment and run `python3 scripts/create-public-templates.py`. Template content and layout are original and MIT-licensed.
+
+Cloud provider tests: `python3 tests/drive-providers.test.py` (requires a release build and rclone; no personal account required). See [cloud setup](CLOUD_STORAGE.md) for authorization.

@@ -129,17 +129,8 @@ fn run(arguments: &[String], limit: usize, seconds: u64) -> Result<Output> {
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    // LAN traffic should not be routed through an inherited Internet proxy.
-    for key in [
-        "HTTP_PROXY",
-        "HTTPS_PROXY",
-        "ALL_PROXY",
-        "http_proxy",
-        "https_proxy",
-        "all_proxy",
-    ] {
-        command.env_remove(key);
-    }
+    // Honor rclone's standard HTTP(S)_PROXY / NO_PROXY settings. Removing them
+    // prevents Internet providers from connecting on proxy-dependent networks.
     let mut child = command.spawn().context("无法启动网盘连接工具")?;
     let stdout = child.stdout.take().context("读取网盘输出失败")?;
     let stderr = child.stderr.take().context("读取网盘状态失败")?;
@@ -242,8 +233,38 @@ fn configured() -> Result<Vec<Value>> {
         })
         .collect())
 }
-fn route_args(_remote: &str) -> (Vec<String>, &'static str) {
-    (vec![], "configured")
+fn validate_provider(provider: &str, backend: &str) -> Result<()> {
+    let expected = match provider {
+        "google-drive" => "drive",
+        "dropbox" => "dropbox",
+        "baidu" | "quark" | "nas" | "rclone" => return Ok(()),
+        _ => bail!("不支持的网盘来源"),
+    };
+    if backend != expected {
+        bail!("所选连接与网盘类型不匹配，请刷新授权列表并重新选择");
+    }
+    Ok(())
+}
+fn setup_command() -> Option<String> {
+    executable().map(|path| {
+        // Display-only POSIX shell quoting; this command is never executed by IPC.
+        format!("'{}' config", path.to_string_lossy().replace('\'', "'\\''"))
+    })
+}
+fn route_args(connection: &Connection) -> (Vec<String>, &'static str) {
+    let flags = if connection.provider == "google-drive" {
+        // Use editable Office exports, and preserve uploaded DOCX bytes instead
+        // of a potentially lossy conversion into a native Google document.
+        vec![
+            "--drive-export-formats".into(),
+            "docx,xlsx,pptx,svg".into(),
+            "--drive-import-formats".into(),
+            String::new(),
+        ]
+    } else {
+        vec![]
+    };
+    (flags, "configured")
 }
 fn arguments(verb: &str, extra: &[&str], paths: &[String], route: &[String]) -> Vec<String> {
     let mut args = vec![
@@ -387,7 +408,7 @@ impl Service {
             .unwrap_or("rclone")
             .to_string();
         Ok(
-            json!({"available":true,"version":version,"remotes":remotes,"presets":presets,"connections":self.load()?,
+            json!({"available":true,"version":version,"setupCommand":setup_command(),"remotes":remotes,"presets":presets,"connections":self.load()?,
             "status":"复用已配置的网盘授权；连接会实际测试当前目录"}),
         )
     }
@@ -397,7 +418,7 @@ impl Service {
         } else {
             text(request, "provider")
         };
-        if !["baidu", "quark", "nas", "rclone"].contains(&provider) {
+        if !["baidu", "quark", "nas", "rclone", "google-drive", "dropbox"].contains(&provider) {
             bail!("不支持的网盘来源");
         }
         let raw_remote = text(request, "remote");
@@ -405,9 +426,12 @@ impl Service {
             bail!("请选择已配置的 rclone 远端");
         }
         let (name, _) = split_remote(raw_remote)?;
-        if !configured()?.iter().any(|r| r["name"] == name) {
-            bail!("此远端尚未授权配置，请先在盘神、OpenList 或 rclone 完成连接");
-        }
+        let remotes = configured()?;
+        let remote = remotes
+            .iter()
+            .find(|r| text(r, "name").trim_end_matches(':') == name)
+            .context("此远端尚未授权配置，请先在盘神、OpenList 或 rclone 完成连接")?;
+        validate_provider(provider, text(remote, "type"))?;
         let folder = if let Some(folder) = request["folder"].as_str() {
             clean_path(folder)?
         } else if provider == "quark" {
@@ -423,7 +447,7 @@ impl Service {
             folder,
             readonly,
         };
-        let (route, route_name) = route_args(&connection.remote);
+        let (route, route_name) = route_args(&connection);
         let mut write_failure = None;
         if request["createFolder"].as_bool().unwrap_or(!readonly)
             && !readonly
@@ -465,7 +489,7 @@ impl Service {
     fn list(&self, request: &Value) -> Result<Value> {
         let connection = self.connection(request)?;
         let path = clean_path(text(request, "path"))?;
-        let (route, route_name) = route_args(&connection.remote);
+        let (route, route_name) = route_args(&connection);
         let rows = list_remote(&destination(&connection, &path)?, &route)?;
         let total = rows.len();
         let mut directories = vec![];
@@ -516,7 +540,7 @@ impl Service {
         let name = clean_name(text(request, "name"))?;
         let path = join(&folder, &name);
         let bytes = decode(text(request, "data"))?;
-        let (route, route_name) = route_args(&connection.remote);
+        let (route, route_name) = route_args(&connection);
         let target = destination(&connection, &path)?;
         if exists_remote(&target, &route)? {
             bail!("网盘已有同名文件，请换个名称以保留已有内容");
@@ -576,7 +600,7 @@ impl Service {
                 if path.is_empty() {
                     bail!("请选择需要下载的文件");
                 }
-                let (route, route_name) = route_args(&connection.remote);
+                let (route, route_name) = route_args(&connection);
                 let bytes = self.download_bytes(&connection, &path, &route)?;
                 Ok(
                     json!({"connectionId":connection.id,"name":path.rsplit('/').next().unwrap_or("文件"),"path":path,
@@ -603,6 +627,20 @@ impl Service {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn explicit_providers_require_the_correct_backend() {
+        assert!(validate_provider("google-drive", "drive").is_ok());
+        assert!(validate_provider("dropbox", "dropbox").is_ok());
+        for provider in ["google-drive", "dropbox"] {
+            for backend in ["webdav", "alias", "local", ""] {
+                assert!(validate_provider(provider, backend).is_err());
+            }
+        }
+        assert!(validate_provider("google-drive", "dropbox").is_err());
+        assert!(validate_provider("dropbox", "drive").is_err());
+        assert!(validate_provider("rclone", "alias").is_ok());
+        assert!(validate_provider("unknown", "drive").is_err());
+    }
     #[test]
     fn remote_paths_cannot_escape_or_inject_options() {
         for bad in [

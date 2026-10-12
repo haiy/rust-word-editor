@@ -13,11 +13,11 @@ An offline-first macOS word processor with a Rust document engine, editable DOCX
 - **AI assistance:** revise selected text, translate documents, preview formatting suggestions and create presentation outlines. Review before applying; ordinary edits support undo. Connect your own compatible API or locally authenticated Codex CLI.
 - **Presentations:** six original content structures, twelve original editable PPTX starter decks (English and Chinese), and three color themes. Import your own PPTX, edit text and slides, preserve existing slide objects, and export PPTX or images.
 - **PDF and images:** organize, rotate, merge and split PDF pages; add annotations; extract text or use OCR; crop, resize, rotate and adjust images; keep reusable assets in a local library.
-- **Storage:** local folders, iCloud Drive, WebDAV and configured rclone remotes. Connect your own NAS, Baidu or Quark account through a supported provider. Write access depends on the remote driver and your permissions.
+- **Storage:** local folders, iCloud Drive, WebDAV and configured rclone remotes. Connect Google Drive, Dropbox, NAS, Baidu or Quark through a supported provider. Write access depends on the remote driver and your permissions.
 
 ## Quick start
 
-1. Download `Rust-Word-0.4.0-macOS-arm64.zip` from [Releases](https://github.com/haiy/rust-word-editor/releases/latest), and compare its SHA-256 with `SHA256SUMS.txt`.
+1. Download `Rust-Word-0.4.1-macOS-arm64.zip` from [Releases](https://github.com/haiy/rust-word-editor/releases/latest), and compare its SHA-256 with `SHA256SUMS.txt`.
 2. Unzip and open **Rust Word.app**. Save and quit an older version before updating.
 3. Start a document or choose a template. Save as `.docx` to continue editing in other word processors.
 4. Use **English / 中文** in the top bar to select a language. The app initially follows your system language (Chinese or English).
@@ -25,6 +25,8 @@ An offline-first macOS word processor with a Rust document engine, editable DOCX
 The downloadable app includes the PDF/OCR helper, rclone and LibreOffice rendering components. It is locally signed, **not Apple-notarized**. On a Gatekeeper prompt, use macOS Privacy & Security to review the app; do not disable system protection globally.
 
 AI is optional and requires your own service/account. Normal document editing works offline. No API keys, account tokens, cookies, drive configuration or private research templates are distributed with the project.
+
+See [Cloud storage setup](CLOUD_STORAGE.md) for Google Drive / Dropbox authorization, shared folders and network settings.
 
 ## Build
 

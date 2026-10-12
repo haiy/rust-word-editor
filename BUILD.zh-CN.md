@@ -23,3 +23,5 @@ PPTX 预览与图片导出需要 LibreOffice，可安装到 `/Applications/Libre
 测试服务只绑定 `127.0.0.1`，使用一次性目录。部分旧 UI 脚本需要自己配置的 codex-chrome 测试桥；新的双语发布烟测使用 Playwright。具体命令见 [英文构建说明](BUILD.md)。
 
 重新生成原创 PPTX 需在隔离 Python 环境安装 `python-pptx`，执行 `python3 scripts/create-public-templates.py`。
+
+网盘测试：`python3 tests/drive-providers.test.py`，需 release 构建和 rclone，不读取个人账号。首次授权见[云存储接入说明](CLOUD_STORAGE.zh-CN.md)。

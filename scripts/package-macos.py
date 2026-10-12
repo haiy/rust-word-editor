@@ -35,7 +35,7 @@ shutil.copy2(root/'LICENSE', resources/'Rust-Word-LICENSE.txt')
 version=tomllib.loads((root/'Cargo.toml').read_text())['package']['version']
 info={
  'CFBundleName':'Rust Word','CFBundleDisplayName':'Rust Word','CFBundleIdentifier':'io.github.haiy.rust-word',
- 'CFBundleExecutable':'rust-word','CFBundlePackageType':'APPL','CFBundleShortVersionString':version,'CFBundleVersion':'4', 'CFBundleDevelopmentRegion':'en','CFBundleLocalizations':['en','zh_CN'],
+ 'CFBundleExecutable':'rust-word','CFBundlePackageType':'APPL','CFBundleShortVersionString':version,'CFBundleVersion':version, 'CFBundleDevelopmentRegion':'en','CFBundleLocalizations':['en','zh_CN'],
  'NSHighResolutionCapable':True,'LSMinimumSystemVersion':'12.0','NSPrincipalClass':'NSApplication',
  'CFBundleDocumentTypes':[{'CFBundleTypeName':'Word document','CFBundleTypeExtensions':['docx'],'CFBundleTypeRole':'Editor','LSHandlerRank':'Alternate'}]
 }

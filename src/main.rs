@@ -655,7 +655,7 @@ fn native_menu(locale: &str) -> Result<muda::Menu> {
         &PredefinedMenuItem::separator(),
         &item("quit", &i18n::text("退出 Rust Word", locale), "Cmd+Q"),
     ])?;
-    let file = Submenu::new(&i18n::text("文件", locale), true);
+    let file = Submenu::new(i18n::text("文件", locale), true);
     file.append_items(&[
         &item("new", &i18n::text("新建", locale), "Cmd+N"),
         &item("open", &i18n::text("打开…", locale), "Cmd+O"),
@@ -666,7 +666,7 @@ fn native_menu(locale: &str) -> Result<muda::Menu> {
         &item("print", &i18n::text("打印 / PDF…", locale), "Cmd+P"),
         &item("quit", &i18n::text("关闭窗口", locale), "Cmd+W"),
     ])?;
-    let edit = Submenu::new(&i18n::text("编辑", locale), true);
+    let edit = Submenu::new(i18n::text("编辑", locale), true);
     edit.append_items(&[
         &item("undo", &i18n::text("撤销", locale), "Cmd+Z"),
         &item("redo", &i18n::text("重做", locale), "Cmd+Shift+Z"),
@@ -679,33 +679,28 @@ fn native_menu(locale: &str) -> Result<muda::Menu> {
         &PredefinedMenuItem::separator(),
         &item("find", &i18n::text("查找与替换", locale), "Cmd+F"),
     ])?;
-    let tools = Submenu::new(&i18n::text("写作", locale), true);
+    let tools = Submenu::new(i18n::text("写作", locale), true);
     tools.append_items(&[
-        &MenuItem::with_id("templates", &i18n::text("模板库…", locale), true, None),
-        &MenuItem::with_id("ai", &i18n::text("AI 辅助修改…", locale), true, None),
-        &MenuItem::with_id("aiSettings", &i18n::text("AI 设置…", locale), true, None),
+        &MenuItem::with_id("templates", i18n::text("模板库…", locale), true, None),
+        &MenuItem::with_id("ai", i18n::text("AI 辅助修改…", locale), true, None),
+        &MenuItem::with_id("aiSettings", i18n::text("AI 设置…", locale), true, None),
         &MenuItem::with_id(
             "translateDocument",
-            &i18n::text("全文翻译…", locale),
+            i18n::text("全文翻译…", locale),
             true,
             None,
         ),
-        &MenuItem::with_id(
-            "formatDocument",
-            &i18n::text("AI 排版…", locale),
-            true,
-            None,
-        ),
+        &MenuItem::with_id("formatDocument", i18n::text("AI 排版…", locale), true, None),
         &MenuItem::with_id(
             "pdfTools",
-            &i18n::text("PDF 编辑与转换…", locale),
+            i18n::text("PDF 编辑与转换…", locale),
             true,
             None,
         ),
-        &MenuItem::with_id("imageTools", &i18n::text("图片编辑…", locale), true, None),
-        &MenuItem::with_id("cloud", &i18n::text("个人云空间…", locale), true, None),
-        &MenuItem::with_id("materials", &i18n::text("素材库…", locale), true, None),
-        &MenuItem::with_id("pptTemplates", &i18n::text("PPT 模板…", locale), true, None),
+        &MenuItem::with_id("imageTools", i18n::text("图片编辑…", locale), true, None),
+        &MenuItem::with_id("cloud", i18n::text("个人云空间…", locale), true, None),
+        &MenuItem::with_id("materials", i18n::text("素材库…", locale), true, None),
+        &MenuItem::with_id("pptTemplates", i18n::text("PPT 模板…", locale), true, None),
     ])?;
     menu.append_items(&[&app, &file, &edit, &tools])?;
     #[cfg(target_os = "macos")]

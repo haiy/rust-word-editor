@@ -13,17 +13,19 @@
 - AI 辅助：选区润色与纠错、全文翻译、排版建议和 PPT 大纲，预览后再采用。使用自己的兼容接口或本机已登录的 Codex CLI。
 - 演示文稿：6 种原创内容结构、12 份中英文原创可编辑 PPTX、3 个主题；导入自己的 PPTX，编辑文字和页面，保留已有对象，导出 PPTX 或图片。
 - PDF 与图片：PDF 页面整理、旋转、合并、拆分、批注、文字提取和 OCR；图片裁剪、旋转、缩放、调色与素材库。
-- 存储：本机目录、iCloud Drive、WebDAV 和已配置的 rclone 远端，可接入自己的 NAS、百度和夸克。写入能力以驱动支持及账号权限为准。
+- 存储：本机目录、iCloud Drive、WebDAV 和已配置的 rclone 远端，可接入自己的 Google Drive、Dropbox、NAS、百度和夸克。写入能力以驱动支持及账号权限为准。
 
 ## 开始使用
 
-从 [Releases](https://github.com/haiy/rust-word-editor/releases/latest) 下载 `Rust-Word-0.4.0-macOS-arm64.zip`，对照 `SHA256SUMS.txt` 检查文件。解压后打开 Rust Word.app；更新前保存文档并退出旧版。
+从 [Releases](https://github.com/haiy/rust-word-editor/releases/latest) 下载 `Rust-Word-0.4.1-macOS-arm64.zip`，对照 `SHA256SUMS.txt` 检查文件。解压后打开 Rust Word.app；更新前保存文档并退出旧版。
 
 首启跟随系统语言，顶部可切换 English / 中文。切换保留当前 Word、PPT、PDF 与图片，但会重新加载界面，清空撤销历史及尚未应用的 AI 预览；确认框会先说明。
 
 应用附 PDF/OCR 助手、rclone 和 LibreOffice 渲染组件，采用本机签名，尚未做 Apple 公证。遇到 Gatekeeper 提示时，请在系统“隐私与安全性”中检查应用，不要关闭系统整体保护。
 
 AI 需要自己的账号或服务，普通编辑可离线使用。公开仓库及安装包不含 API Key、账号令牌、Cookie、个人网盘配置或私人研究模板。
+
+Google Drive / Dropbox 的首次授权、共享目录与网络设置见[云存储接入说明](CLOUD_STORAGE.zh-CN.md)。
 
 ## 构建
 
