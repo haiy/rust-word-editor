@@ -1,0 +1,81 @@
+{
+  "themes": [
+    {
+      "id": "public-blue",
+      "name": "Clear Blue",
+      "nameZh": "清晰蓝",
+      "colors": {
+        "accent1": "235BAB",
+        "accent2": "D7E4F4",
+        "accent3": "E3A34F",
+        "accent4": "668AAE",
+        "accent5": "7867A4",
+        "accent6": "AD765A",
+        "dk1": "172B42",
+        "dk2": "344D67",
+        "lt1": "FFFFFF",
+        "lt2": "F3F6FB",
+        "hlink": "235BAB",
+        "folHlink": "6847A6"
+      },
+      "fonts": {
+        "major": "Arial",
+        "minor": "Arial",
+        "majorEastAsia": "PingFang SC",
+        "minorEastAsia": "PingFang SC"
+      }
+    },
+    {
+      "id": "public-green",
+      "name": "Forest",
+      "nameZh": "森林绿",
+      "colors": {
+        "accent1": "26735C",
+        "accent2": "D8EFE4",
+        "accent3": "E3A34F",
+        "accent4": "668AAE",
+        "accent5": "7867A4",
+        "accent6": "AD765A",
+        "dk1": "172B42",
+        "dk2": "344D67",
+        "lt1": "FFFFFF",
+        "lt2": "F3F6FB",
+        "hlink": "235BAB",
+        "folHlink": "6847A6"
+      },
+      "fonts": {
+        "major": "Arial",
+        "minor": "Arial",
+        "majorEastAsia": "PingFang SC",
+        "minorEastAsia": "PingFang SC"
+      }
+    },
+    {
+      "id": "public-purple",
+      "name": "Violet",
+      "nameZh": "紫罗兰",
+      "colors": {
+        "accent1": "6847A6",
+        "accent2": "E7DEF5",
+        "accent3": "E3A34F",
+        "accent4": "668AAE",
+        "accent5": "7867A4",
+        "accent6": "AD765A",
+        "dk1": "172B42",
+        "dk2": "344D67",
+        "lt1": "FFFFFF",
+        "lt2": "F3F6FB",
+        "hlink": "235BAB",
+        "folHlink": "6847A6"
+      },
+      "fonts": {
+        "major": "Arial",
+        "minor": "Arial",
+        "majorEastAsia": "PingFang SC",
+        "minorEastAsia": "PingFang SC"
+      }
+    }
+  ],
+  "license": "MIT",
+  "source": "Original Rust Word palettes"
+}
