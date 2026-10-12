@@ -31,6 +31,7 @@ enum UserEvent {
 }
 struct App {
     path: Option<PathBuf>,
+    imported_name: Option<String>,
     protect_original: bool,
     recovery: PathBuf,
     ui_preferences: PathBuf,
@@ -54,6 +55,7 @@ impl App {
         };
         Self {
             path: None,
+            imported_name: None,
             protect_original: false,
             recovery: config_dir.join("recovery.json"),
             ui_locale: fs::read(config_dir.join("ui-preferences.json"))
@@ -156,23 +158,13 @@ impl App {
             bail!("文件超过 128 MB");
         }
         let bytes = fs::read(&path)?;
+        let (document, warnings) = parse_local_document(&file_name(&path), &bytes)?;
         let ext = path
             .extension()
             .and_then(|s| s.to_str())
             .unwrap_or("")
             .to_lowercase();
-        let (document, warnings) = if ext == "txt" {
-            let s = String::from_utf8(bytes).context("文本文件需为 UTF-8 编码")?;
-            (
-                json!({"type":"doc","content":s.lines().map(|line|if line.is_empty(){json!({"type":"paragraph"})}else{json!({"type":"paragraph","content":[{"type":"text","text":line}]})}).collect::<Vec<_>>()}),
-                vec![],
-            )
-        } else if ext == "docx" {
-            let d = docx::import(&bytes)?;
-            (d.document, d.warnings)
-        } else {
-            bail!("请选择 .docx 或 UTF-8 .txt 文件，旧版 .doc 请先转换");
-        };
+        self.imported_name = None;
         self.protect_original = !warnings.is_empty() || ext != "docx";
         self.path = Some(path.clone());
         Ok(
@@ -283,6 +275,24 @@ impl App {
                     json!({"data":STANDARD.encode(&bytes),"bytes":bytes.len(),"name":cloud::suggested_name(req["name"].as_str().unwrap_or("文档"),"docx")}),
                 )
             }
+            "openFile" => {
+                let name = req["name"].as_str().context("缺少文件名")?;
+                if name.is_empty()
+                    || name
+                        .chars()
+                        .any(|c| c == '/' || c == '\\' || c.is_control())
+                {
+                    bail!("文件名无效");
+                }
+                let bytes = cloud::decode(req["data"].as_str().context("缺少文档内容")?)?;
+                let (document, warnings) = parse_local_document(name, &bytes)?;
+                // Uploaded/dropped files have no writable local path. Never retain
+                // the previous document's save target when opening their contents.
+                self.path = None;
+                self.imported_name = Some(name.to_owned());
+                self.protect_original = true;
+                Ok(json!({"document":document,"warnings":warnings,"name":name,"protected":true}))
+            }
             "importDocument" => {
                 let bytes = cloud::decode(req["data"].as_str().context("缺少文档内容")?)?;
                 let imported = docx::import(&bytes)?;
@@ -380,6 +390,7 @@ impl App {
             }
             "new" => {
                 self.path = None;
+                self.imported_name = None;
                 self.protect_original = false;
                 let _ = fs::remove_file(&self.recovery);
                 Ok(json!({"ok":true}))
@@ -417,7 +428,8 @@ impl App {
                 } else {
                     let name = self
                         .path
-                        .as_ref()
+                        .as_deref()
+                        .or_else(|| self.imported_name.as_deref().map(Path::new))
                         .and_then(|p| p.file_stem())
                         .and_then(|s| s.to_str())
                         .map(str::to_owned)
@@ -454,6 +466,7 @@ impl App {
                 let bytes = docx::export(document)?;
                 atomic_write(&path, &bytes)?;
                 self.path = Some(path.clone());
+                self.imported_name = None;
                 self.protect_original = false;
                 let _ = fs::remove_file(&self.recovery);
                 Ok(
@@ -483,6 +496,7 @@ impl App {
                 // A recovered draft is always a new copy, never silently linked to the source.
                 self.path = None;
                 self.protect_original = false;
+                self.imported_name = None;
                 v["path"] = Value::Null;
                 Ok(v)
             }
@@ -582,6 +596,27 @@ fn image_file(p: &Path) -> Result<Value> {
         json!({"src":format!("data:{mime};base64,{}",STANDARD.encode(fs::read(p)?)),"alt":file_name(p)}),
     )
 }
+fn parse_local_document(name: &str, bytes: &[u8]) -> Result<(Value, Vec<String>)> {
+    let ext = Path::new(name)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let (document, warnings) = if ext == "txt" {
+        let s = String::from_utf8(bytes.to_vec()).context("文本文件需为 UTF-8 编码")?;
+        (
+            json!({"type":"doc","content":s.lines().map(|line|if line.is_empty(){json!({"type":"paragraph"})}else{json!({"type":"paragraph","content":[{"type":"text","text":line}]})}).collect::<Vec<_>>()}),
+            vec![],
+        )
+    } else if ext == "docx" {
+        let d = docx::import(bytes)?;
+        (d.document, d.warnings)
+    } else {
+        bail!("请选择 .docx 或 UTF-8 .txt 文件，旧版 .doc 请先转换");
+    };
+    Ok((document, warnings))
+}
+
 fn response(app: &mut App, req: &Value) -> Value {
     let id = req["id"].clone();
     match app.dispatch(req) {
@@ -893,6 +928,70 @@ mod tests {
         too_large[0]["document"] = json!("字".repeat(3 * 1024 * 1024));
         assert!(app.store_templates(&too_large).is_err());
         assert_eq!(fs::read(&app.templates).unwrap(), before);
+    }
+    #[test]
+    fn local_upload_detaches_previous_save_target_and_failure_preserves_it() {
+        let root = tempfile::tempdir().unwrap();
+        let mut app = App::new(Some(root.path().into()));
+        let old_doc = json!({"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Original file"}]}]});
+        app.dispatch(&json!({"command":"savePath","path":"original.docx","document":old_doc}))
+            .unwrap();
+        let original = fs::read(root.path().join("original.docx")).unwrap();
+        let old_path = app.path.clone();
+        assert!(app.dispatch(&json!({"command":"openFile","name":"broken.docx","data":STANDARD.encode(b"not a zip")})).is_err());
+        assert_eq!(app.path, old_path);
+        assert!(!app.protect_original);
+        let new_doc = json!({"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Imported content"}]}]});
+        let bytes = docx::export(&new_doc).unwrap();
+        let opened = app
+            .dispatch(
+                &json!({"command":"openFile","name":"report.DOCX","data":STANDARD.encode(bytes)}),
+            )
+            .unwrap();
+        assert_eq!(opened["document"], new_doc);
+        assert!(app.path.is_none());
+        assert!(app.protect_original);
+        assert_eq!(app.imported_name.as_deref(), Some("report.DOCX"));
+        assert!(app
+            .dispatch(&json!({"command":"openFile","name":"broken.docx","data":"invalid"}))
+            .is_err());
+        assert_eq!(app.imported_name.as_deref(), Some("report.DOCX"));
+        app.dispatch(&json!({"command":"savePath","path":"copy.docx","document":new_doc}))
+            .unwrap();
+        assert_eq!(
+            fs::read(root.path().join("original.docx")).unwrap(),
+            original
+        );
+        assert!(app.imported_name.is_none());
+    }
+    #[test]
+    fn local_upload_validates_type_name_and_utf8() {
+        let root = tempfile::tempdir().unwrap();
+        let mut app = App::new(Some(root.path().into()));
+        for name in [
+            "",
+            "../escape.txt",
+            "nested/file.docx",
+            "nested\\file.docx",
+            "legacy.doc",
+        ] {
+            assert!(app
+                .dispatch(
+                    &json!({"command":"openFile","name":name,"data":STANDARD.encode(b"text")})
+                )
+                .is_err());
+        }
+        assert!(app
+            .dispatch(
+                &json!({"command":"openFile","name":"bad.txt","data":STANDARD.encode([0xff])})
+            )
+            .is_err());
+        let opened = app.dispatch(&json!({"command":"openFile","name":"notes.TXT","data":STANDARD.encode("First line\n第二行")})).unwrap();
+        assert_eq!(opened["document"]["content"].as_array().unwrap().len(), 2);
+        assert!(app.path.is_none());
+        assert!(app.protect_original);
+        app.dispatch(&json!({"command":"new"})).unwrap();
+        assert!(app.imported_name.is_none());
     }
     #[test]
     fn atomic_save_and_recover() {

@@ -17,9 +17,10 @@ An offline-first macOS word processor with a Rust document engine, editable DOCX
 
 ## Quick start
 
-1. Download `Rust-Word-0.4.1-macOS-arm64.zip` from [Releases](https://github.com/haiy/rust-word-editor/releases/latest), and compare its SHA-256 with `SHA256SUMS.txt`.
+1. Download `Rust-Word-0.4.2-macOS-arm64.zip` from [Releases](https://github.com/haiy/rust-word-editor/releases/latest), and compare its SHA-256 with `SHA256SUMS.txt`.
 2. Unzip and open **Rust Word.app**. Save and quit an older version before updating.
-3. Start a document or choose a template. Save as `.docx` to continue editing in other word processors.
+3. Open a local `.docx` or UTF-8 `.txt`, or drag one into the editor. Import progress and errors are shown in the window. Browser preview uses its own file picker; dropped/uploaded files save as a copy. In the browser, Save and Save As download an editable DOCX copy; a local recovery draft is retained.
+4. Start a document or choose a template. Save as `.docx` to continue editing in other word processors.
 4. Use **English / 中文** in the top bar to select a language. The app initially follows your system language (Chinese or English).
 
 The downloadable app includes the PDF/OCR helper, rclone and LibreOffice rendering components. It is locally signed, **not Apple-notarized**. On a Gatekeeper prompt, use macOS Privacy & Security to review the app; do not disable system protection globally.

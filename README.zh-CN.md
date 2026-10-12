@@ -17,7 +17,7 @@
 
 ## 开始使用
 
-从 [Releases](https://github.com/haiy/rust-word-editor/releases/latest) 下载 `Rust-Word-0.4.1-macOS-arm64.zip`，对照 `SHA256SUMS.txt` 检查文件。解压后打开 Rust Word.app；更新前保存文档并退出旧版。
+从 [Releases](https://github.com/haiy/rust-word-editor/releases/latest) 下载 `Rust-Word-0.4.2-macOS-arm64.zip`，对照 `SHA256SUMS.txt` 检查文件。解压后打开 Rust Word.app；更新前保存文档并退出旧版。
 
 首启跟随系统语言，顶部可切换 English / 中文。切换保留当前 Word、PPT、PDF 与图片，但会重新加载界面，清空撤销历史及尚未应用的 AI 预览；确认框会先说明。
 
@@ -26,6 +26,8 @@
 AI 需要自己的账号或服务，普通编辑可离线使用。公开仓库及安装包不含 API Key、账号令牌、Cookie、个人网盘配置或私人研究模板。
 
 Google Drive / Dropbox 的首次授权、共享目录与网络设置见[云存储接入说明](CLOUD_STORAGE.zh-CN.md)。
+
+打开支持本地 `.docx` 与 UTF-8 `.txt`，也可把文件拖入窗口。读取、解析和失败原因会在界面显示。浏览器预览使用浏览器文件选择框；拖入或上传的文档会另存副本。浏览器中的“保存”“另存为”会下载可编辑的 DOCX 副本，并保留本地恢复草稿。
 
 ## 构建
 

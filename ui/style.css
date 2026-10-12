@@ -11,3 +11,5 @@
 #drive-connect-hint{margin:8px 0;line-height:1.5}
 #modal-body:has(#drive-provider) label{margin:10px 0}
 #modal-body:has(#drive-provider) select{display:block;width:100%;padding:7px;border:1px solid var(--border);border-radius:5px;margin-top:4px;background:white}
+
+.file-open-error{display:flex;align-items:center;gap:12px;padding:8px 20px;background:#fff0ec;color:#9b3428;border-bottom:1px solid #f0c5bc;flex-shrink:0;font-size:12px;line-height:1.5}.file-open-error span{flex:1;overflow-wrap:anywhere}.file-open-error button{padding:2px 8px;font-size:18px}#file-progress{z-index:35}#file-progress .modal{width:min(440px,calc(100vw - 32px))}#file-progress-text{overflow-wrap:anywhere}#file-progress progress{width:100%;accent-color:var(--blue)}@media print{.file-open-error,#file-progress{display:none!important}}
