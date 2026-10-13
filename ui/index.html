@@ -29,7 +29,19 @@
 <div id="file-progress" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="正在打开文档" tabindex="-1"><div class="modal"><h2>正在打开文档</h2><p id="file-progress-text" role="status" aria-live="polite"></p><progress aria-label="文档导入进度"></progress></div></div>
 <div id="warning" class="warning hidden"></div>
 <main class="workspace"><aside class="sidebar"><div class="sidebar-heading">文档导航<button id="outline-toggle" title="隐藏导航">‹</button></div><div id="outline"><p class="empty-outline">添加标题后，<br>章节会显示在这里。</p></div><div class="sidebar-footer"><span class="local-dot"></span>离线编辑，本机保存</div></aside><section class="canvas" id="canvas"><div class="ruler"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span><span>12</span><span>14</span><span>16</span></div><div id="paper"><div id="editor" aria-label="文档编辑区"></div></div></section><aside id="find-panel" class="find-panel hidden"><div class="sidebar-heading">查找与替换<button id="find-close">×</button></div><label>查找<input id="search" placeholder="输入要查找的文字"></label><div class="row"><span id="match-count">0 处匹配</span><button data-action="prevMatch">↑</button><button data-action="nextMatch">↓</button></div><label>替换为<input id="replace" placeholder="输入替换文字"></label><div class="row"><button data-action="replaceOne">替换</button><button data-action="replaceAll">全部替换</button></div></aside><aside id="ai-panel" class="ai-panel hidden" aria-label="AI 辅助修改">
- <div class="ai-panel-heading"><div><span class="ai-eyebrow">WRITING ASSISTANT</span><h2>让表达更清晰</h2></div><button id="ai-close" aria-label="关闭 AI 助手">×</button></div>
+ <div class="ai-panel-heading"><div><span class="ai-eyebrow">WRITING ASSISTANT</span><h2>AI 助手</h2></div><button id="ai-close" aria-label="关闭 AI 助手">×</button></div>
+ <nav class="ai-tabs" role="tablist" aria-label="AI 工作方式"><button role="tab" data-ai-tab="chat" aria-controls="ai-chat">对话</button><button role="tab" data-ai-tab="rewrite" aria-controls="ai-rewrite">选文改写</button><button id="chat-new" title="开始新对话" aria-label="开始新对话">＋ 新对话</button></nav>
+ <section id="ai-chat" role="tabpanel" class="ai-chat">
+  <div class="chat-scroll"><div id="chat-empty" class="chat-empty"><h3>想写点什么？</h3><p>直接说你的想法，也可以围绕文档连续追问。</p><div class="chat-starters"><button data-chat-prompt="帮我写一篇公众号文章，先和我确认主题、读者和风格。">写一篇文章</button><button data-chat-prompt="帮我梳理思路，先问我想解决什么问题。">梳理思路</button></div></div><div id="chat-messages" role="log" aria-label="对话记录" aria-live="polite" aria-relevant="additions text"></div></div>
+  <div class="chat-composer">
+   <div class="chat-references"><button id="chat-reference-selection">引用选文</button><button id="chat-reference-document">引用全文</button></div>
+   <div id="chat-context" class="chat-context hidden"><div><span id="chat-context-label"></span><button id="chat-clear-context" aria-label="移除引用">×</button></div><p id="chat-context-preview"></p></div>
+   <label for="chat-input" class="chat-input-label">消息</label><textarea id="chat-input" rows="2" maxlength="8000" placeholder="写下你的问题，或让我帮你起草…" aria-label="发送给 AI 的消息"></textarea>
+   <div class="chat-composer-actions"><button id="chat-settings" title="AI 服务设置"><span id="chat-provider-label">读取服务配置…</span> ▾</button><button id="chat-send" class="primary" disabled>发送</button></div>
+   <div class="chat-composer-hint">Enter 发送 · Shift+Enter 换行</div><p id="chat-status" role="status"></p>
+  </div>
+ </section>
+ <section id="ai-rewrite" role="tabpanel" class="ai-rewrite hidden">
  <div class="ai-panel-body"><div class="ai-service-row"><span id="ai-provider-label">读取服务配置…</span><button id="ai-settings">服务设置</button></div>
  <label class="field-label">修改方式<select id="ai-mode"><option value="polish">润色表达</option><option value="correct">纠正错字与语病</option><option value="shorten">精简与缩写</option><option value="expand">补充与扩写</option><option value="formal">正式表达</option><option value="custom">按我的要求改写</option></select></label>
  <label id="ai-custom-label" class="field-label hidden">你的要求<textarea id="ai-instruction" rows="3" maxlength="2000" placeholder="例如：语气更自然，保留所有数字"></textarea></label>
@@ -39,7 +51,7 @@
  <div class="ai-text-heading">修改建议<span>可以继续编辑</span></div><textarea id="ai-result" rows="8" placeholder="AI 的建议会显示在这里"></textarea>
  <p id="ai-status" role="status">在正文中选择文字，再生成修改建议。</p></div>
  <div class="ai-panel-footer"><button id="ai-discard">放弃建议</button><button id="ai-apply" class="primary" disabled>应用到正文</button></div>
-</aside></main>
+</section></aside></main>
 <div id="context-tools" class="context-tools hidden"></div>
 <footer class="statusbar"><button id="show-outline" class="hidden">☷ 导航</button><span id="word-count">0 字</span><span id="selection-count"></span><span class="status-spacer"></span><span id="page-status">A4 纵向</span><button id="zoom-out">−</button><input id="zoom" type="range" min="60" max="150" step="5" value="100" aria-label="缩放"><button id="zoom-in">+</button><span id="zoom-label">100%</span></footer>
 <div id="template-library" class="template-overlay hidden"><section class="template-library" role="dialog" aria-modal="true" aria-labelledby="template-library-title">

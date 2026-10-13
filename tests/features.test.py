@@ -131,6 +131,7 @@ def begin_ai(mode, source):
     click('[data-tab="writing"]')
     click('[data-action="ai-' + mode + '"]')
     wait_for("!document.querySelector('#ai-panel').classList.contains('hidden')")
+    click('[data-ai-tab="rewrite"]')
     select_text(source)
     click('#ai-generate')
     check(evaluate("document.querySelector('#ai-generate').disabled"), '真实 AI 请求已启动：' + mode)
@@ -280,6 +281,7 @@ try:
     # UI guards and public configuration do not expose stored secrets.
     click('[data-action="ai"]')
     wait_for("!document.querySelector('#ai-panel').classList.contains('hidden')")
+    click('[data-ai-tab="rewrite"]')
     settings = evaluate("window.rustWord.invoke('aiSettings')")
     check(settings['provider'] == 'codex' and 'apiKey' not in settings, '默认 AI 为本机 Codex 且公开配置不包含密钥')
     evaluate('window.rustWord.editor.commands.setTextSelection(1)')

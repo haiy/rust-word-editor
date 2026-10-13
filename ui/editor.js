@@ -21,6 +21,7 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view';
 document.body.classList.add('booting');
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
+let documentEpoch=0;
 let requestId=0, dirty=false, revision=0, autosaveTimer, saving=false, name='未命名文档', zoom=1, toastTimer, matchIndex=0, modalCancel=null;
 const pending=new Map();
 window.__rustReply=reply=>{const p=pending.get(reply.id);if(p){pending.delete(reply.id);reply.error?p.reject(new Error(serviceText(reply.error))):p.resolve(serviceData(reply.data));}};
@@ -59,7 +60,7 @@ function updateButtons(){if(!window.rustWord)return;const mappings={bold:'bold',
 function modal(title,body,buttons){return new Promise(resolve=>{const el=$('#modal');$('#modal-title').textContent=title;$('#modal-body').innerHTML=body;$('#modal-actions').replaceChildren();const close=value=>{el.classList.add('hidden');modalCancel=null;resolve(value);};for(const [label,value,primary]of buttons){const b=document.createElement('button');b.textContent=label;if(primary)b.className='primary';b.onclick=()=>close(value);$('#modal-actions').append(b);}modalCancel=()=>close('cancel');el.classList.remove('hidden');setTimeout(()=>$('#modal-body input')?.focus(),20);});}
 async function guard(){if(!dirty)return true;const choice=await modal('保存你的修改？','<p>这份文档还有未保存的修改。保存后再继续，或放弃这次修改。</p>',[['取消','cancel'],['不保存','discard'],['保存','save',true]]);if(choice==='cancel')return false;if(choice==='save')return await save(false);clearTimeout(autosaveTimer);await invoke('discardRecovery');return true;}
 async function save(as){if(saving)return false;saving=true;const version=revision;const document=editor.getJSON();clearTimeout(autosaveTimer);setState('正在保存…');try{const r=window.ipc?await invoke(as?'saveAs':'save',{document}):await saveBrowserCopy(invoke,document,name);if(!r){setState(dirty?'未保存':'已保存');if(dirty)scheduleRecovery();return false;}name=r.name;dirty=revision!==version;updateTitle();setState(dirty?'未保存':window.ipc?'已保存':'已发起下载');if(dirty)scheduleRecovery();toast(window.ipc?`已保存 ${r.name}`:'副本已发起下载，请在浏览器下载列表中查看');return true;}catch(e){setState('保存失败');toast(e.message);if(dirty)scheduleRecovery();return false;}finally{saving=false;}}
-function loadDocument(r){clearTimeout(autosaveTimer);editor.commands.setContent(r.document,{emitUpdate:false});let tr=editor.state.tr.setDocAttribute('orientation',r.document.attrs?.orientation||'portrait');for(const side of ['Top','Bottom','Left','Right'])tr=tr.setDocAttribute(`margin${side}`,r.document.attrs?.[`margin${side}`]??20);editor.view.dispatch(tr);editor.view.updateState(EditorState.create({doc:editor.state.doc,plugins:editor.state.plugins}));matches=[];matchIndex=0;$('#search').value='';$('#match-count').textContent='0 / 0 处匹配';clearTimeout(autosaveTimer);name=r.name||'未命名文档';dirty=false;revision++;updateTitle();setState('已打开');$('#warning').textContent=(r.warnings||[]).join(' ');$('#warning').classList.toggle('hidden',!r.warnings?.length);refresh();editor.commands.focus('start');}
+function loadDocument(r){documentEpoch++;clearTimeout(autosaveTimer);editor.commands.setContent(r.document,{emitUpdate:false});let tr=editor.state.tr.setDocAttribute('orientation',r.document.attrs?.orientation||'portrait');for(const side of ['Top','Bottom','Left','Right'])tr=tr.setDocAttribute(`margin${side}`,r.document.attrs?.[`margin${side}`]??20);editor.view.dispatch(tr);editor.view.updateState(EditorState.create({doc:editor.state.doc,plugins:editor.state.plugins}));matches=[];matchIndex=0;$('#search').value='';$('#match-count').textContent='0 / 0 处匹配';clearTimeout(autosaveTimer);name=r.name||'未命名文档';dirty=false;revision++;window.rustWord.chat?.documentChanged();updateTitle();setState('已打开');$('#warning').textContent=(r.warnings||[]).join(' ');$('#warning').classList.toggle('hidden',!r.warnings?.length);refresh();editor.commands.focus('start');}
 async function insertImage(src,alt=''){if(!/^data:image\/(png|jpeg|gif);base64,/.test(src))throw new Error('请选择 PNG、JPEG 或 GIF 图片');const img=new window.Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('图片无法读取'));img.src=src;});const w=Math.min(620,img.naturalWidth),h=img.naturalHeight*w/img.naturalWidth;editor.chain().focus().setImage({src,alt,width:w,height:h}).run();}
 async function insertFiles(files){for(const f of files){if(!['image/png','image/jpeg','image/gif'].includes(f.type))continue;if(f.size>32*1024*1024)throw new Error('图片超过 32 MB');const src=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(f);});await insertImage(src,f.name);}}
 function searchRefresh(scroll=false){editor.view.dispatch(editor.state.tr.setMeta(searchKey,true));if(scroll&&matches.length){const m=matches[matchIndex];editor.commands.setTextSelection(m);editor.view.dispatch(editor.state.tr.scrollIntoView());}}
@@ -85,7 +86,7 @@ for(const action of ['addRowAfter','deleteRow','addColumnAfter','deleteColumn','
 function resizeImage(scale){const a=editor.getAttributes('image');const w=Math.min(650,Math.max(30,a.width*scale));editor.chain().focus().updateAttributes('image',{width:w,height:a.height*w/a.width}).run();}
 window.rustWord.actions=actions;window.rustWord.loadDocument=loadDocument;window.rustWord.insertImage=insertImage;
 window.rustWord.markTemplateDirty=()=>{dirty=true;revision++;updateTitle();setState('未保存');scheduleRecovery();};
-installFeatures({editor,actions,invoke,modal,guard,loadDocument,refresh,toast,revision:()=>revision,documentName:()=>name});
+installFeatures({editor,actions,invoke,modal,guard,loadDocument,refresh,toast,revision:()=>revision,documentName:()=>name,documentIdentity:()=>documentEpoch});
 installSuite({editor,actions,invoke,modal,guard,loadDocument,refresh,toast,revision:()=>revision,documentName:()=>name});
 installPpt({editor,actions,invoke,modal,toast,revision:()=>revision,documentName:()=>name});
 installDrives({editor,actions,invoke,modal,guard,loadDocument,toast,documentName:()=>name});
@@ -109,17 +110,18 @@ async function restoreLanguageSnapshot(s) {
   if(s.selection)editor.commands.setTextSelection(s.selection);
   if(dirty)scheduleRecovery();
   window.rustWord.suite.restoreSnapshot(s.suite);
+  window.rustWord.chat.restore(s.chat);
   if(s.ppt?.deck){await window.rustWord.ppt.setDeck(s.ppt.deck,s.ppt.dirty);$('#ppt-overlay').classList.add('hidden');}
 }
 $('#language-select').value=window.__rustWordBoot.locale;
 $('#language-select').onchange=async e=>{
  const locale=e.target.value;e.target.value=window.__rustWordBoot.locale;
  if(locale===window.__rustWordBoot.locale)return;
- if(saving||fileOpen.isOpening()||pending.size||document.querySelector('.busy')||$('#ai-generate').disabled){toast('正在处理，请稍候');return;}
+ if(saving||fileOpen.isOpening()||window.rustWord.chat?.isBusy()||pending.size||document.querySelector('.busy')||$('#ai-generate').disabled){toast('正在处理，请稍候');return;}
  const choice=await modal('切换界面语言','<p>正文、PPT、PDF 和图片将保留。界面会重新加载，撤销历史和未应用的 AI 建议将重置。</p>',[['取消','cancel'],['切换语言','switch',true]]);
  if(choice!=='switch')return;
  try {
-  const snapshot={document:editor.getJSON(),name,dirty,revision,zoom,selection:{from:editor.state.selection.from,to:editor.state.selection.to},warnings:$('#warning').textContent?[$('#warning').textContent]:[],suite:window.rustWord.suite.snapshot(),ppt:{deck:window.rustWord.ppt.getDeck(),dirty:window.rustWord.ppt.isDirty()}};
+  const snapshot={document:editor.getJSON(),name,dirty,revision,zoom,selection:{from:editor.state.selection.from,to:editor.state.selection.to},warnings:$('#warning').textContent?[$('#warning').textContent]:[],suite:window.rustWord.suite.snapshot(),chat:window.rustWord.chat.snapshot(),ppt:{deck:window.rustWord.ppt.getDeck(),dirty:window.rustWord.ppt.isDirty()}};
   await invoke('setUiLanguage',{locale,snapshot});clearTimeout(autosaveTimer);window.__changingLanguage=true;
   if(window.ipc)fire('reloadUi');else location.reload();
  } catch(error){toast(error.message);}

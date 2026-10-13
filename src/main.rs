@@ -207,6 +207,7 @@ impl App {
             }
             "aiSettings" => self.ai.settings(),
             "saveAiSettings" => self.ai.save_settings(&req["settings"]),
+            "aiChat" => self.ai.chat(req),
             "aiRewrite" => self.ai.rewrite(req),
             "aiTranslate" => self.ai.translate_document(req),
             "aiFormat" => self.ai.format_document(req),
@@ -652,6 +653,29 @@ fn test_server(addr: &str, root: &str) -> Result<()> {
                 .as_reader()
                 .take(150 * 1024 * 1024)
                 .read_to_string(&mut b)?;
+            // Chat must not block autosave, file operations or settings reads in
+            // the local browser preview while the model is generating.
+            if let Ok(req) = serde_json::from_str::<Value>(&b) {
+                if req["command"] == "aiChat" {
+                    let ai = app.ai.clone();
+                    std::thread::spawn(move || {
+                        let value = match ai.chat(&req) {
+                            Ok(data) => json!({"id":req["id"],"data":data}),
+                            Err(error) => json!({"id":req["id"],"error":format!("{error:#}")}),
+                        };
+                        let _ = request.respond(
+                            tiny_http::Response::from_data(
+                                serde_json::to_vec(&value).unwrap_or_default(),
+                            )
+                            .with_header(
+                                tiny_http::Header::from_bytes("Content-Type", "application/json")
+                                    .unwrap(),
+                            ),
+                        );
+                    });
+                    continue;
+                }
+            }
             let value = match serde_json::from_str::<Value>(&b) {
                 Ok(req) => response(&mut app, &req),
                 Err(e) => json!({"error":e.to_string()}),
@@ -836,7 +860,7 @@ fn main() -> Result<()> {
                         window.set_title(req["title"].as_str().unwrap_or("Rust Word"));
                         return;
                     }
-                    if matches!(command,"aiRewrite"|"aiTranslate"|"aiFormat"|"aiPresentation"|"cloudList"|"cloudTest"|"cloudUpload"|"cloudDownload"|"materialGet"|"materialSave"|"imageInspect"|"imageEdit"|"pdfInspect"|"pdfRender"|"pdfToText"|"pdfTransform"|"pdfMerge"|"imagesToPdf"|"pptExport"|"pptExportImages"|"pptTemplateOpen"|"pptTemplateFile"|"pptTemplatePreview"|"pptNativeRender"|"driveDiscover"|"driveConnect"|"driveList"|"driveUpload"|"driveDownload") {
+                    if matches!(command,"aiChat"|"aiRewrite"|"aiTranslate"|"aiFormat"|"aiPresentation"|"cloudList"|"cloudTest"|"cloudUpload"|"cloudDownload"|"materialGet"|"materialSave"|"imageInspect"|"imageEdit"|"pdfInspect"|"pdfRender"|"pdfToText"|"pdfTransform"|"pdfMerge"|"imagesToPdf"|"pptExport"|"pptExportImages"|"pptTemplateOpen"|"pptTemplateFile"|"pptTemplatePreview"|"pptNativeRender"|"driveDiscover"|"driveConnect"|"driveList"|"driveUpload"|"driveDownload") {
                         let ai=app.ai.clone(); let storage=app.storage.clone();let materials=app.materials.clone();let drives=app.drives.clone();let root=app.test_root.clone();let proxy=ai_proxy.clone();
                         std::thread::spawn(move || {
                             let id=req["id"].clone();let action=req["command"].as_str().unwrap_or("");
@@ -846,7 +870,7 @@ fn main() -> Result<()> {
                                 "pptTemplateFile"=>ppt::template_file(req["templateId"].as_str().context("缺少模板 ID")?,req["original"].as_bool().unwrap_or(false)),
                                 "pptTemplatePreview"=>ppt::template_preview(req["templateId"].as_str().context("缺少模板 ID")?),
                                 "pptNativeRender"=>ppt::render_native(&req),
-                                "aiRewrite"=>ai.rewrite(&req),"aiTranslate"=>ai.translate_document(&req),"aiFormat"=>ai.format_document(&req),"aiPresentation"=>ai.presentation_outline(&req),
+                                "aiChat"=>ai.chat(&req),"aiRewrite"=>ai.rewrite(&req),"aiTranslate"=>ai.translate_document(&req),"aiFormat"=>ai.format_document(&req),"aiPresentation"=>ai.presentation_outline(&req),
                                 "cloudList"|"cloudTest"|"cloudUpload"|"cloudDownload"=>storage.dispatch(action,&req),
                                 "materialGet"|"materialSave"=>materials.dispatch(action,&req),
                                 "pptExport"=>{let bytes=ppt::export_pptx(&req["deck"])?;Ok(json!({"data":STANDARD.encode(&bytes),"bytes":bytes.len(),"name":cloud::suggested_name(req["deck"]["title"].as_str().unwrap_or("演示文稿"),"pptx")}))},

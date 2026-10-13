@@ -155,6 +155,7 @@ try:
         click('#template-close')
         click('.quick-actions [data-action="ai"]')
         wait_for("!document.querySelector('#ai-panel').classList.contains('hidden')")
+        click('[data-ai-tab="rewrite"]')
         measured = evaluate(MEASURE + "(['#ai-close','#ai-settings','#ai-mode','#ai-generate','#ai-apply'])")
         check(all(c['visible'] for c in measured['commands']), f'{width}×{height} AI 入口模式生成与应用按钮可达', measured['commands'])
         # Test readability using user-editable synthetic text. This is not an AI
@@ -175,6 +176,7 @@ try:
         click('#ai-close')
         click('.quick-actions [data-action="ai"]')
         wait_for("!document.querySelector('#ai-panel').classList.contains('hidden')")
+        click('[data-ai-tab="rewrite"]')
         check(evaluate("document.querySelector('#ai-close').getBoundingClientRect().right<=innerWidth"), f'{width}×{height} AI 面板可重新打开并关闭')
         click('#ai-close')
     evaluate("window.rustWord.invoke('discardRecovery')")

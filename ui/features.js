@@ -1,3 +1,4 @@
+import { installChat } from './chat.js';
 import { TextSelection } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
 import { builtinTemplates, previewNodes } from './templates.js';
@@ -8,9 +9,9 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const paragraphDefaults = { lineHeight: '1.5', indent: 0, textAlign: 'left', spaceBefore: 0, spaceAfter: 8, firstLineIndent: 0, keepNext: false, keepLines: false, pageBreakBefore: false };
 const formatMarks = ['bold', 'italic', 'underline', 'strike', 'textStyle', 'highlight', 'subscript', 'superscript'];
 
-export function installFeatures({ editor, actions, invoke, modal, guard, loadDocument, refresh, toast, revision, documentName }) {
+export function installFeatures({ editor, actions, invoke, modal, guard, loadDocument, refresh, toast, revision, documentName, documentIdentity }) {
   let templates = [...builtinTemplates], selectedTemplate = templates[0], category = '全部';
-  let brush = null, aiSource = null, aiBusy = false, settings = null;
+  let brush = null, aiSource = null, aiBusy = false, settings = null, chat = null;
   const library = $('#template-library'), aiPanel = $('#ai-panel');
 
   function previewTemplate(template) {
@@ -166,9 +167,9 @@ export function installFeatures({ editor, actions, invoke, modal, guard, loadDoc
     updateAiProvider(); toast('AI 服务设置已保存');
   }
 
-  function updateAiProvider() { $('#ai-provider-label').textContent = { codex: '本机 Codex', gpu: '已有 GPU 服务', openai: settings?.model || '兼容接口' }[settings?.provider] || '读取服务配置…'; }
+  function updateAiProvider() { const label = { codex: '本机 Codex', gpu: '已有 GPU 服务', openai: settings?.model || '兼容接口' }[settings?.provider] || '读取服务配置…'; $('#ai-provider-label').textContent = label; $('#chat-provider-label').textContent = label; }
   async function openAi(mode) {
-    $('#find-panel').classList.add('hidden'); aiPanel.classList.remove('hidden');
+    $('#find-panel').classList.add('hidden'); aiPanel.classList.remove('hidden'); chat.show(mode ? 'rewrite' : 'chat');
     if (mode) $('#ai-mode').value = mode;
     $('#ai-custom-label').classList.toggle('hidden', $('#ai-mode').value !== 'custom');
     if (!settings) { settings = await invoke('aiSettings'); updateAiProvider(); }
@@ -176,7 +177,7 @@ export function installFeatures({ editor, actions, invoke, modal, guard, loadDoc
   }
 
   async function runAi() {
-    if (aiBusy) return;
+    if (aiBusy || chat.isBusy()) { toast('已有一项 AI 请求正在生成，请等待完成'); return; }
     const selection = editor.state.selection;
     if (!(selection instanceof TextSelection) || selection.empty) { toast('请先在正文中选中要修改的文字'); return; }
     const source = editor.state.doc.textBetween(selection.from, selection.to, '\n');
@@ -215,6 +216,7 @@ export function installFeatures({ editor, actions, invoke, modal, guard, loadDoc
     editor.view.dispatch(closeHistory(editor.state.tr)); $('#ai-apply').disabled = true; $('#ai-status').textContent = '已应用到正文。可按 ⌘Z 撤销这次修改。'; aiSource = null; toast('AI 修改已应用，可撤销');
   }
 
+  chat = installChat({editor,invoke,modal,toast,revision,documentIdentity,openSettings:aiSettings,isRewriteBusy:()=>aiBusy});
   actions.ai = () => openAi(); actions.aiSettings = aiSettings;
   for (const mode of ['polish', 'correct', 'shorten', 'expand', 'formal']) actions[`ai-${mode}`] = () => openAi(mode);
   $('#ai-close').onclick = () => aiPanel.classList.add('hidden');

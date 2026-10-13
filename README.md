@@ -17,7 +17,7 @@ An offline-first macOS word processor with a Rust document engine, editable DOCX
 
 ## Quick start
 
-1. Download `Rust-Word-0.4.2-macOS-arm64.zip` from [Releases](https://github.com/haiy/rust-word-editor/releases/latest), and compare its SHA-256 with `SHA256SUMS.txt`.
+1. Download `Rust-Word-0.4.3-macOS-arm64.zip` from [Releases](https://github.com/haiy/rust-word-editor/releases/latest), and compare its SHA-256 with `SHA256SUMS.txt`.
 2. Unzip and open **Rust Word.app**. Save and quit an older version before updating.
 3. Open a local `.docx` or UTF-8 `.txt`, or drag one into the editor. Import progress and errors are shown in the window. Browser preview uses its own file picker; dropped/uploaded files save as a copy. In the browser, Save and Save As download an editable DOCX copy; a local recovery draft is retained.
 4. Start a document or choose a template. Save as `.docx` to continue editing in other word processors.
@@ -28,6 +28,12 @@ The downloadable app includes the PDF/OCR helper, rclone and LibreOffice renderi
 AI is optional and requires your own service/account. Normal document editing works offline. No API keys, account tokens, cookies, drive configuration or private research templates are distributed with the project.
 
 See [Cloud storage setup](CLOUD_STORAGE.md) for Google Drive / Dropbox authorization, shared folders and network settings.
+
+## AI conversations
+
+Open **AI Assistant → Chat** and type a request without selecting document text. Continue the conversation, use **Reference selection / Reference document** to attach text explicitly, then copy an answer or insert it at the end of the document. Referenced selections can be replaced while the original text is still unchanged; insertion and replacement support Undo. **Rewrite selection** keeps the previous preview-and-apply workflow.
+
+Chat reuses the configured Codex, GPU service or OpenAI-compatible API. Each conversation supports up to 20 turns. Closing the sidebar or changing the interface language retains the chat and draft; restarting the app clears chat history. Documents are only included when you attach a reference, and AI answers modify the document only when you apply them.
 
 ## Build
 
