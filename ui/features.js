@@ -147,32 +147,42 @@ export function installFeatures({ editor, actions, invoke, modal, guard, loadDoc
 
   async function aiSettings() {
     const current = await invoke('aiSettings'); settings = current;
-    const promise = modal('AI 服务设置', '<label>使用的服务<select id="ai-provider"><option value="codex">本机已登录的 Codex</option><option value="gpu">已有 GPU AI 服务</option><option value="openai">OpenAI 兼容接口</option></select></label><p id="ai-provider-hint"></p><div id="ai-api-fields"><label>接口地址<input id="ai-base-url" placeholder="https://api.example.com/v1"></label><div id="ai-gpu-fields"><label>用户 ID<input id="ai-user-id"></label><label>Codex 配置<input id="ai-codex-profile" value="local"></label></div><div id="ai-openai-fields"><label>模型<input id="ai-model" placeholder="服务支持的模型名称"></label><label>API 密钥<input id="ai-api-key" type="password" autocomplete="new-password"></label><label class="setting-check"><input id="ai-clear-key" type="checkbox">删除已保存的密钥</label></div></div>', [['取消', 'cancel'], ['保存设置', 'save', true]]);
+    const promise = modal('AI 服务设置', '<label>使用的服务<select id="ai-provider"><option value="codex">本机已登录的 Codex</option><option value="workbuddy">本机 WorkBuddy</option><option value="gpu">已有 GPU AI 服务</option><option value="openai">OpenAI 兼容接口</option></select></label><p id="ai-provider-hint"></p><div id="ai-workbuddy-fields"><label>WorkBuddy 模型<select id="ai-workbuddy-model"></select></label></div><div id="ai-api-fields"><label>接口地址<input id="ai-base-url" placeholder="https://api.example.com/v1"></label><div id="ai-gpu-fields"><label>用户 ID<input id="ai-user-id"></label><label>Codex 配置<input id="ai-codex-profile" value="local"></label></div><div id="ai-openai-fields"><label>模型<input id="ai-model" placeholder="服务支持的模型名称"></label><label>API 密钥<input id="ai-api-key" type="password" autocomplete="new-password"></label><label class="setting-check"><input id="ai-clear-key" type="checkbox">删除已保存的密钥</label></div></div>', [['取消', 'cancel'], ['保存设置', 'save', true]]);
     $('#ai-provider').value = current.provider;
+    const wbSelect = $('#ai-workbuddy-model');
+    const automatic = document.createElement('option'); automatic.value = ''; automatic.textContent = '自动使用 WorkBuddy 配置中的第一个模型'; wbSelect.append(automatic);
+    for (const model of current.workbuddyModels || []) { const option = document.createElement('option'); option.value = model.id; option.textContent = model.name || model.id; wbSelect.append(option); }
+    wbSelect.value = current.workbuddyModel || '';
     $('#ai-base-url').value = current.baseUrl || ''; $('#ai-user-id').value = current.userId || ''; $('#ai-model').value = current.model || ''; $('#ai-codex-profile').value = current.codexProfile || 'local';
     $('#ai-api-key').placeholder = current.apiKeySet ? '已保存，留空保持不变' : '仅保存在本机';
     let previousProvider = current.provider;
     const update = () => {
       const provider = $('#ai-provider').value;
-      $('#ai-api-fields').classList.toggle('hidden', provider === 'codex'); $('#ai-gpu-fields').classList.toggle('hidden', provider !== 'gpu'); $('#ai-openai-fields').classList.toggle('hidden', provider !== 'openai');
-      $('#ai-provider-hint').textContent = { codex: '复用本机账户和当前默认模型，不需要另填密钥。', gpu: '连接你已有的服务，生成建议后由你决定是否应用。', openai: '填写服务提供的地址、模型和密钥。' }[provider];
+      $('#ai-workbuddy-fields').classList.toggle('hidden', provider !== 'workbuddy');
+      $('#ai-api-fields').classList.toggle('hidden', ['codex','workbuddy'].includes(provider)); $('#ai-gpu-fields').classList.toggle('hidden', provider !== 'gpu'); $('#ai-openai-fields').classList.toggle('hidden', provider !== 'openai');
+      $('#ai-provider-hint').textContent = { codex: '复用本机账户和当前默认模型，不需要另填密钥。', workbuddy: '使用 WorkBuddy 内置 CLI 和已有自定义模型；密钥不进入界面，当前调用不加载其他项目和插件。', gpu: '连接你已有的服务，生成建议后由你决定是否应用。', openai: '填写服务提供的地址、模型和密钥。' }[provider];
       if (provider !== previousProvider && provider === 'openai' && (!$('#ai-base-url').value || $('#ai-base-url').value === 'http://127.0.0.1:18090')) $('#ai-base-url').value = 'https://api.openai.com/v1';
       if (provider !== previousProvider && provider === 'gpu' && (!$('#ai-base-url').value || $('#ai-base-url').value === 'https://api.openai.com/v1')) $('#ai-base-url').value = 'http://127.0.0.1:18090';
       previousProvider = provider;
     };
     $('#ai-provider').onchange = update; update();
     if (await promise !== 'save') { $('#ai-api-key').value = ''; return; }
-    const next = { provider: $('#ai-provider').value, baseUrl: $('#ai-base-url').value.trim(), userId: $('#ai-user-id').value.trim(), model: $('#ai-model').value.trim(), codexProfile: $('#ai-codex-profile').value.trim(), apiKey: $('#ai-api-key').value, clearApiKey: $('#ai-clear-key').checked };
+    const next = { provider: $('#ai-provider').value, workbuddyModel: $('#ai-workbuddy-model').value, baseUrl: $('#ai-base-url').value.trim(), userId: $('#ai-user-id').value.trim(), model: $('#ai-model').value.trim(), codexProfile: $('#ai-codex-profile').value.trim(), apiKey: $('#ai-api-key').value, clearApiKey: $('#ai-clear-key').checked };
     $('#ai-api-key').value = ''; settings = await invoke('saveAiSettings', { settings: next });
     updateAiProvider(); toast('AI 服务设置已保存');
   }
 
-  function updateAiProvider() { const label = { codex: '本机 Codex', gpu: '已有 GPU 服务', openai: settings?.model || '兼容接口' }[settings?.provider] || '读取服务配置…'; $('#ai-provider-label').textContent = label; $('#chat-provider-label').textContent = label; }
+  function updateAiProvider() { const label = { codex: '本机 Codex', workbuddy: 'WorkBuddy', gpu: '已有 GPU 服务', openai: settings?.model || '兼容接口' }[settings?.provider] || '读取服务配置…'; $('#ai-provider-label').textContent = label; $('#chat-provider-select').value = settings?.provider || 'codex'; }
+  async function selectChatProvider(provider) {
+    if (aiBusy) throw new Error('已有一项 AI 请求正在生成，请等待完成');
+    settings = await invoke('saveAiSettings',{settings:{provider}}); updateAiProvider();
+    return settings.provider;
+  }
   async function openAi(mode) {
     $('#find-panel').classList.add('hidden'); aiPanel.classList.remove('hidden'); chat.show(mode ? 'rewrite' : 'chat');
     if (mode) $('#ai-mode').value = mode;
     $('#ai-custom-label').classList.toggle('hidden', $('#ai-mode').value !== 'custom');
-    if (!settings) { settings = await invoke('aiSettings'); updateAiProvider(); }
+    settings = await invoke('aiSettings'); updateAiProvider();
     if (!aiBusy && !$('#ai-result').value) $('#ai-status').textContent = '在正文中选择文字，再生成修改建议。';
   }
 
@@ -216,7 +226,7 @@ export function installFeatures({ editor, actions, invoke, modal, guard, loadDoc
     editor.view.dispatch(closeHistory(editor.state.tr)); $('#ai-apply').disabled = true; $('#ai-status').textContent = '已应用到正文。可按 ⌘Z 撤销这次修改。'; aiSource = null; toast('AI 修改已应用，可撤销');
   }
 
-  chat = installChat({editor,invoke,modal,toast,revision,documentIdentity,openSettings:aiSettings,isRewriteBusy:()=>aiBusy});
+  chat = installChat({editor,invoke,modal,toast,revision,documentIdentity,openSettings:aiSettings,selectProvider:selectChatProvider,isRewriteBusy:()=>aiBusy});
   actions.ai = () => openAi(); actions.aiSettings = aiSettings;
   for (const mode of ['polish', 'correct', 'shorten', 'expand', 'formal']) actions[`ai-${mode}`] = () => openAi(mode);
   $('#ai-close').onclick = () => aiPanel.classList.add('hidden');

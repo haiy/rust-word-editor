@@ -2654,7 +2654,7 @@ dependencies = [
 
 [[package]]
 name = "rust-word"
-version = "0.4.3"
+version = "0.4.4"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

@@ -10,14 +10,14 @@ An offline-first macOS word processor with a Rust document engine, editable DOCX
 
 - **Write and edit:** rich text, headings, lists, tables, embedded images, search and replace, page settings, draft recovery, and real DOCX import/export.
 - **English and Simplified Chinese:** choose the interface language in the top bar. Native menus, tool dialogs and built-in writing templates are localized. Existing document text is never translated by switching the interface.
-- **AI assistance:** revise selected text, translate documents, preview formatting suggestions and create presentation outlines. Review before applying; ordinary edits support undo. Connect your own compatible API or locally authenticated Codex CLI.
+- **AI assistance:** revise selected text, translate documents, preview formatting suggestions and create presentation outlines. Review before applying; ordinary edits support undo. Choose Codex or WorkBuddy directly in the chat sidebar, or connect your own compatible API.
 - **Presentations:** six original content structures, twelve original editable PPTX starter decks (English and Chinese), and three color themes. Import your own PPTX, edit text and slides, preserve existing slide objects, and export PPTX or images.
 - **PDF and images:** organize, rotate, merge and split PDF pages; add annotations; extract text or use OCR; crop, resize, rotate and adjust images; keep reusable assets in a local library.
 - **Storage:** local folders, iCloud Drive, WebDAV and configured rclone remotes. Connect Google Drive, Dropbox, NAS, Baidu or Quark through a supported provider. Write access depends on the remote driver and your permissions.
 
 ## Quick start
 
-1. Download `Rust-Word-0.4.3-macOS-arm64.zip` from [Releases](https://github.com/haiy/rust-word-editor/releases/latest), and compare its SHA-256 with `SHA256SUMS.txt`.
+1. Download `Rust-Word-0.4.4-macOS-arm64.zip` from [Releases](https://github.com/haiy/rust-word-editor/releases/latest), and compare its SHA-256 with `SHA256SUMS.txt`.
 2. Unzip and open **Rust Word.app**. Save and quit an older version before updating.
 3. Open a local `.docx` or UTF-8 `.txt`, or drag one into the editor. Import progress and errors are shown in the window. Browser preview uses its own file picker; dropped/uploaded files save as a copy. In the browser, Save and Save As download an editable DOCX copy; a local recovery draft is retained.
 4. Start a document or choose a template. Save as `.docx` to continue editing in other word processors.
@@ -33,7 +33,7 @@ See [Cloud storage setup](CLOUD_STORAGE.md) for Google Drive / Dropbox authoriza
 
 Open **AI Assistant → Chat** and type a request without selecting document text. Continue the conversation, use **Reference selection / Reference document** to attach text explicitly, then copy an answer or insert it at the end of the document. Referenced selections can be replaced while the original text is still unchanged; insertion and replacement support Undo. **Rewrite selection** keeps the previous preview-and-apply workflow.
 
-Chat reuses the configured Codex, GPU service or OpenAI-compatible API. Each conversation supports up to 20 turns. Closing the sidebar or changing the interface language retains the chat and draft; restarting the app clears chat history. Documents are only included when you attach a reference, and AI answers modify the document only when you apply them.
+The chat sidebar has a direct Codex / WorkBuddy / GPU / compatible API selector. Switching services keeps the conversation and input draft; replies show the service and, for WorkBuddy, the actual model. Codex reuses its local login. WorkBuddy uses the CLI bundled with the installed macOS app and an existing custom model from its local model settings. Choose that model in AI settings; the default is the first configured custom model. Word creates a private temporary CLI configuration and does not import WorkBuddy projects, memory, plugins or hooks. WorkBuddy subscription-only desktop login is not supported by this adapter; a configured custom model with a valid endpoint/key is required. No request silently falls back to another provider. Each conversation supports up to 20 turns. Closing the sidebar or changing the interface language retains the chat and draft; restarting the app clears chat history. Documents are only included when you attach a reference, and AI answers modify the document only when you apply them.
 
 ## Build
 

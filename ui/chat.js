@@ -50,17 +50,19 @@ export function answerBlocks(text) {
   return blocks.length ? blocks : [{type:'paragraph'}];
 }
 
-export function installChat({editor,invoke,modal,toast,revision,documentIdentity,openSettings,isRewriteBusy}) {
-  let turns = [], context = null, busy = false, activeTab = 'chat';
+export function installChat({editor,invoke,modal,toast,revision,documentIdentity,openSettings,selectProvider,isRewriteBusy}) {
+  let turns = [], context = null, busy = false, changingProvider = false, activeTab = 'chat';
   const input = $('#chat-input'), messages = $('#chat-messages');
   function status(text, error = false) {
     $('#chat-status').textContent = text;
     $('#chat-status').classList.toggle('error',error);
   }
   function controls() {
-    $('#chat-send').disabled = busy || !input.value.trim();
+    $('#chat-send').disabled = busy || changingProvider || !input.value.trim();
     $('#chat-send').textContent = busy ? '正在回复…' : '发送';
-    $('#chat-new').disabled = busy;
+    $('#chat-new').disabled = busy || changingProvider;
+    $('#chat-provider-select').disabled = busy || changingProvider;
+    $('#chat-settings').disabled = busy || changingProvider;
     input.style.height = 'auto'; input.style.height = Math.min(150,Math.max(66,input.scrollHeight))+'px';
   }
   function renderContext() {
@@ -132,7 +134,7 @@ export function installChat({editor,invoke,modal,toast,revision,documentIdentity
       }
       messages.append(user);
       const reply = document.createElement('article'); reply.className = 'chat-message chat-assistant';
-      const heading = document.createElement('span'); heading.className = 'chat-speaker'; heading.textContent = 'AI 助手'; reply.append(heading);
+      const heading = document.createElement('span'); heading.className = 'chat-speaker'; heading.textContent = turn.provider ? `AI 助手 · ${providerName(turn.provider)}` : 'AI 助手'; if (turn.model) heading.append(document.createTextNode(' · '+turn.model)); reply.append(heading);
       if (turn.answer) {
         const content = document.createElement('div'); content.className = 'chat-answer';
         const doc = editor.schema.nodeFromJSON({type:'doc',content:answerBlocks(turn.answer)});
@@ -166,7 +168,7 @@ export function installChat({editor,invoke,modal,toast,revision,documentIdentity
     context = {kind,text,source,documentId:documentIdentity()}; renderContext(); input.focus({preventScroll:true});
   }
   async function send(retry = null) {
-    if (busy || isRewriteBusy()) { toast('已有一项 AI 请求正在生成，请等待完成'); return; }
+    if (busy || changingProvider || isRewriteBusy()) { toast('已有一项 AI 请求正在生成，请等待完成'); return; }
     const question = retry ? retry.question : input.value.trim();
     if (!question) return;
     if ([...question].length > 8000) { status('提问最多 8000 字，请缩短后再发送',true); return; }
@@ -180,11 +182,11 @@ export function installChat({editor,invoke,modal,toast,revision,documentIdentity
     history.push({role:'user',content:question,...(turn.context ? {context:turn.context} : {})});
     if (history.length > 39) { status('对话最多支持 20 轮，请新建对话继续',true); return; }
     if (!retry) { turns.push(turn); input.value = ''; context = null; renderContext(); }
-    turn.error = null; busy = true; controls(); render(true); status('正在回复，你可以继续编辑文档。');
+    turn.provider = $('#chat-provider-select').value; turn.error = null; busy = true; controls(); render(true); status('正在回复，你可以继续编辑文档。');
     try {
-      const result = await invoke('aiChat',{messages:history});
+      const result = await invoke('aiChat',{messages:history,provider:turn.provider});
       if (!result.text?.trim()) throw new Error('AI 没有返回文字，请重试');
-      turn.answer = result.text; status('可以继续追问，或将回答插入文档。');
+      turn.provider = result.provider || turn.provider; turn.model = result.model || ''; turn.answer = result.text; status('可以继续追问，或将回答插入文档。');
     } catch (error) { turn.error = error.message; status('回复失败，可以重试或修改问题后发送。',true); }
     finally { busy = false; controls(); render(true); }
   }
@@ -210,12 +212,26 @@ export function installChat({editor,invoke,modal,toast,revision,documentIdentity
   $('#chat-reference-selection').onclick = () => attach('selection');
   $('#chat-reference-document').onclick = () => attach('document');
   $('#chat-clear-context').onclick = () => { context = null; renderContext(); };
+  function providerName(provider) { return {codex:'Codex',workbuddy:'WorkBuddy',gpu:'已有 GPU 服务',openai:'兼容接口'}[provider] || provider; }
+  $('#chat-provider-select').onchange = async event => {
+    const provider = event.target.value;
+    if (busy || changingProvider) return;
+    changingProvider = true; controls();
+    try {
+      await selectProvider(provider);
+      status(`已选择 ${providerName(provider)}，下一条消息将携带当前对话历史。`);
+    } catch (error) {
+      const saved = await invoke('aiSettings').catch(()=>null);
+      if (saved) event.target.value = saved.provider;
+      status(error.message,true);
+    } finally { changingProvider = false; controls(); }
+  };
   $('#chat-settings').onclick = () => openSettings().catch(error => toast(error.message));
   for (const el of document.querySelectorAll('[data-chat-prompt]')) el.onclick = () => { input.value = el.dataset.chatPrompt; controls(); input.focus({preventScroll:true}); };
   for (const el of document.querySelectorAll('[data-ai-tab]')) el.onclick = () => show(el.dataset.aiTab);
   editor.on('update',updateApplyButtons);
   const api = {
-    show, isBusy:() => busy,
+    show, isBusy:() => busy || changingProvider,
     documentChanged() { context = null; renderContext(); updateApplyButtons(); },
     snapshot:() => ({turns:clone(turns),context:context ? clone(context) : null,draft:input.value,tab:activeTab,documentId:documentIdentity()}),
     restore(snapshot) {

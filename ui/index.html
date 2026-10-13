@@ -37,7 +37,7 @@
    <div class="chat-references"><button id="chat-reference-selection">引用选文</button><button id="chat-reference-document">引用全文</button></div>
    <div id="chat-context" class="chat-context hidden"><div><span id="chat-context-label"></span><button id="chat-clear-context" aria-label="移除引用">×</button></div><p id="chat-context-preview"></p></div>
    <label for="chat-input" class="chat-input-label">消息</label><textarea id="chat-input" rows="2" maxlength="8000" placeholder="写下你的问题，或让我帮你起草…" aria-label="发送给 AI 的消息"></textarea>
-   <div class="chat-composer-actions"><button id="chat-settings" title="AI 服务设置"><span id="chat-provider-label">读取服务配置…</span> ▾</button><button id="chat-send" class="primary" disabled>发送</button></div>
+   <div class="chat-composer-actions"><select id="chat-provider-select" aria-label="对话服务" title="选择本次对话使用的服务"><option value="codex">Codex</option><option value="workbuddy">WorkBuddy</option><option value="gpu">已有 GPU 服务</option><option value="openai">兼容接口</option></select><button id="chat-settings" title="AI 服务设置">设置</button><button id="chat-send" class="primary" disabled>发送</button></div>
    <div class="chat-composer-hint">Enter 发送 · Shift+Enter 换行</div><p id="chat-status" role="status"></p>
   </div>
  </section>
